@@ -1,21 +1,27 @@
-# Easily-master-GO-reflect
+package ref
 
-轻松掌握GO反射 Easily master GO reflect
+import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"reflect"
+	"strings"
+	"testing"
+)
 
-## 开篇
-
-本次我们将以 两个联系 带领 让大家来掌握golang的反射
-
-
-### 练习1 实现一个简易的 validator
-
-```go
 type LoginRequest struct {
-	Email     string `json:"email" validator:"required"`
+	Email    string `json:"email" validator:"required"`
 	Password string `json:"password" validator:"required"`
 }
 
-练习1 我们需要 验证 LoginRequest  email 和 password 字段是否为空
+func TestReflect(t *testing.T) {
+	request := LoginRequest{
+		Email:    "",
+		Password: "this is password",
+	}
+
+	Validate(&request)
+}
 
 func Validate(input interface{}) bool {
 	refType := reflect.TypeOf(input)   // 得到 入参 类型相关信息
@@ -34,7 +40,6 @@ func Validate(input interface{}) bool {
 	for i := 0; i < numField; i++ { // 遍历这个字段
 		field := refType.Field(i) // 按照 下标 获取字段
 		tag := field.Tag.Get("validator")
-
 		switch tag {
 		case "required": // 处理具体事件
 			value := refValue.Field(i) // 更具下标 获取具体值
@@ -51,33 +56,13 @@ func Validate(input interface{}) bool {
 
 	return true
 }
-```
 
-
-### 本节所学: 
-
-``` 
-	refType := reflect.TypeOf(input)   // 得到 入参 类型相关信息
-	refValue := reflect.ValueOf(input) // 得到 入参 值相关信息
-	refType.Kind()  // 获取当前 refType 的具体类型
-	refType.Elem()  // refType 取 地址, 注意如果 当前 refType 不是 指针 会 painc
-	numField := refType.NumField()  // 获取 struct 中字段个数
-	
-	field := refType.Field(i) // 按照 下标 获取字段
-	tag := field.Tag.Get("validator")  // 获取字段的tag
-	
-	value := refValue.Field(i) // 更具下标 获取refValue具体值
-```
-
-
-### 练习2 `map[string]interface` 转 `struct`
-
-```go
 type Request2 struct {
 	Email    string  `json:"email" validator:"required"`
 	Password string  `json:"password" validator:"required"`
 	Name     *string `json:"name"`
 	Age      int64   `json:"age"`
+	pp       string
 }
 
 func TestReflect2(t *testing.T) {
@@ -90,15 +75,18 @@ func TestReflect2(t *testing.T) {
 		"age":      18,
 	}
 
-	Convert(input, &output)
+	if err := Convert(input, &output); err != nil {
+		panic(err)
+	}
+
+	marshal, err := json.Marshal(output)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(string(marshal))
 }
 
-func Convert(input map[string]interface{}, output interface{}) {}
-```
-
-
-演示代码 写的不太优雅 请君见谅
-```go
 func Convert(input map[string]interface{}, output interface{}) error {
 	// 第一步 我们 先获取基础信息
 	refType := reflect.TypeOf(output)
@@ -160,6 +148,3 @@ func Convert(input map[string]interface{}, output interface{}) error {
 
 	return nil
 }
-```
-
-
